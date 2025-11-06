@@ -1,0 +1,47 @@
+name: Android Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # install your web deps (if package.json is in root)
+      - name: Install deps
+        run: |
+          npm install
+          npm run build || echo "no web build step"
+
+      # sync Capacitor to Android (you already have android/)
+      - name: Capacitor sync
+        run: |
+          npx cap sync android
+
+      # build the APK
+      - name: Build Android APK
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease
+
+      # give us the APK to download
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: android/app/build/outputs/apk/release/*.apk
